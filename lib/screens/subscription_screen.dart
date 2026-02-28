@@ -1,8 +1,97 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../theme/app_theme.dart';
 
-class SubscriptionScreen extends StatelessWidget {
+class SubscriptionScreen extends StatefulWidget {
   const SubscriptionScreen({super.key});
+
+  @override
+  State<SubscriptionScreen> createState() => _SubscriptionScreenState();
+}
+
+class _SubscriptionScreenState extends State<SubscriptionScreen> {
+  Razorpay? _razorpay;
+
+  @override
+  void initState() {
+    super.initState();
+    // Razorpay only works on Android/iOS, not web
+    if (!kIsWeb) {
+      _razorpay = Razorpay();
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    }
+  }
+
+  @override
+  void dispose() {
+    _razorpay?.clear();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    _showSnack(
+      '✅ Payment Successful! ID: ${response.paymentId}',
+      AppColors.primary,
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    _showSnack(
+      '❌ Payment Failed: ${response.message ?? "Unknown error"}',
+      AppColors.scoreLow,
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    _showSnack('External Wallet: ${response.walletName}', AppColors.primary);
+  }
+
+  void _showSnack(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _openCheckout(String planName, int amountInPaise) {
+    if (kIsWeb) {
+      _showSnack(
+        'Payment is only available on the mobile app.',
+        AppColors.textMuted,
+      );
+      return;
+    }
+
+    final keyId = dotenv.env['RAZORPAY_KEY_ID'] ?? '';
+    if (keyId.isEmpty) {
+      _showSnack('Razorpay key not configured.', AppColors.scoreLow);
+      return;
+    }
+
+    final options = {
+      'key': keyId,
+      'amount': amountInPaise, // in paise
+      'name': 'SiteScapr',
+      'description': '$planName Plan',
+      'prefill': {'contact': '', 'email': ''},
+      'theme': {'color': '#2E7D32'},
+    };
+
+    try {
+      _razorpay!.open(options);
+    } catch (e) {
+      _showSnack('Error opening payment: $e', AppColors.scoreLow);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,15 +154,18 @@ class SubscriptionScreen extends StatelessWidget {
                   ],
                   cta: 'Get Started',
                   highlighted: false,
-                  onTap: () => _showDummy(context),
+                  onTap: () => _showSnack(
+                    'You\'re already on the Free plan!',
+                    AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: 16),
 
                 // ── Pro tier ──
                 _TierCard(
                   name: 'Pro',
-                  price: '₹999',
-                  period: 'per month',
+                  price: '₹599',
+                  period: 'once',
                   description:
                       'Everything you need to make a confident site decision.',
                   features: const [
@@ -84,9 +176,9 @@ class SubscriptionScreen extends StatelessWidget {
                     'Save & compare locations',
                     'Priority support',
                   ],
-                  cta: 'Start Free Trial',
+                  cta: 'Pay ₹599',
                   highlighted: true,
-                  onTap: () => _showDummy(context),
+                  onTap: () => _openCheckout('Pro', 59900), // ₹599 in paise
                 ),
                 const SizedBox(height: 16),
 
@@ -105,12 +197,15 @@ class SubscriptionScreen extends StatelessWidget {
                   ],
                   cta: 'Contact Sales',
                   highlighted: false,
-                  onTap: () => _showDummy(context),
+                  onTap: () => _showSnack(
+                    'Contact us at hello@sitescapr.com',
+                    AppColors.primary,
+                  ),
                 ),
 
                 const SizedBox(height: 20),
                 Text(
-                  'All prices in INR. Pro tier includes a 7-day free trial.\nCancel anytime. Payment integration coming soon.',
+                  'All prices in INR. Test mode — no real charges.\nPayment powered by Razorpay.',
                   style: Theme.of(context).textTheme.bodySmall,
                   textAlign: TextAlign.center,
                 ),
@@ -119,17 +214,6 @@ class SubscriptionScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showDummy(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Payment integration coming soon!'),
-        backgroundColor: AppColors.primary,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

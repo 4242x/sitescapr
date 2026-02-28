@@ -17,9 +17,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
 
   Color _scoreColor(double score) {
-    if (score >= 40) return AppColors.scoreHigh;
-    if (score >= 25) return AppColors.scoreMedium;
-    return AppColors.scoreLow;
+    return AppColors.primary;
   }
 
   Color _rankColor(int rank) {
