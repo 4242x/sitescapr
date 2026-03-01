@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
 
@@ -13,13 +14,15 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  // ── Change this IP to your computer's local network IP ──
-  // Find it with: ipconfig (Windows) or ifconfig (Mac/Linux)
+  // ── Backend URL ──
+  // Reads BACKEND_URL from .env. Defaults to localhost for local dev.
+  // For production, set this to backend2's deployed URL.
   static const String _lanIp = '192.168.137.42';
 
   static String get baseUrl {
+    final envUrl = dotenv.env['BACKEND_URL'] ?? '';
+    if (envUrl.isNotEmpty) return envUrl.replaceAll(RegExp(r'/+$'), '');
     if (kIsWeb) return 'http://localhost:8000';
-    // Physical device uses LAN IP; emulator could use 10.0.2.2
     return 'http://$_lanIp:8000';
   }
 

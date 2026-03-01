@@ -7,6 +7,7 @@ import 'hypothetical_screen.dart';
 import 'subscription_screen.dart';
 import 'server_status_screen.dart';
 import 'methodology_screen.dart';
+import 'package:clerk_flutter/clerk_flutter.dart';
 
 class InputFormScreen extends StatefulWidget {
   const InputFormScreen({super.key});
@@ -518,8 +519,14 @@ class _InputFormScreenState extends State<InputFormScreen>
 
             const Spacer(),
             const Divider(color: AppColors.cardBorder, height: 1),
+
+            // User profile + sign out
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(children: [const Expanded(child: ClerkUserButton())]),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: Text(
                 'SiteScapr v2.0',
                 style: Theme.of(context).textTheme.bodySmall,
